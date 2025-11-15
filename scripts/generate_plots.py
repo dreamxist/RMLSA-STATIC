@@ -1,220 +1,283 @@
+#!/usr/bin/env python3
 """
-Generate visualization plots from simulation results
+Generación de Gráficos para Resultados de Optimización RMLSA
+
+Genera visualizaciones de:
+- Max Slot Used vs Número de Demandas
+- Tiempo de Ejecución vs Número de Demandas
+- Comparación de Algoritmos
 """
+
 import sys
-import os
+from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
 # Add parent directory to path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
+def load_results():
+    """Cargar resultados de experimentos"""
+    results_file = Path(__file__).parent.parent / 'results' / 'optimization_results.csv'
+    if not results_file.exists():
+        print(f"Error: No se encontró {results_file}")
+        print("Ejecuta primero: python3 scripts/run_optimization_experiments.py")
+        sys.exit(1)
 
-def plot_watermark_comparison(df, output_file='results/watermark_comparison.png'):
-    """
-    Plot watermark comparison between SP-FF and k-SP-MW.
+    df = pd.read_csv(results_file)
+    return df
 
-    Args:
-        df (pd.DataFrame): Results dataframe
-        output_file (str): Output filename for plot
-    """
-    # Separate data by algorithm
-    sp_ff_data = df[df['algorithm'] == 'sp_ff'].sort_values('num_demands')
-    ksp_mw_data = df[df['algorithm'] == 'ksp_mw'].sort_values('num_demands')
+def plot_max_slot_comparison(df):
+    """Gráfico de Max Slot Used vs Número de Demandas"""
+    fig, ax = plt.subplots(figsize=(10, 6))
 
-    # Create figure
-    plt.figure(figsize=(10, 6))
+    # Calcular promedio y std por algoritmo y tamaño
+    summary = df.groupby(['num_demands', 'algorithm'])['max_slot_used'].agg(['mean', 'std']).reset_index()
 
-    # Plot lines with error bars
-    plt.errorbar(sp_ff_data['num_demands'],
-                 sp_ff_data['avg_watermark'],
-                 yerr=sp_ff_data['std_watermark'],
-                 marker='o', markersize=8, linewidth=2,
-                 capsize=5, capthick=2,
-                 label='SP-FF (Benchmark)',
-                 color='#E74C3C')
+    # Plot para cada algoritmo
+    algorithms = ['greedy_ff', 'greedy_mw', 'sa', 'ga']
+    colors = {'greedy_ff': '#FF6B6B', 'greedy_mw': '#4ECDC4', 'sa': '#45B7D1', 'ga': '#96CEB4'}
+    markers = {'greedy_ff': 'o', 'greedy_mw': 's', 'sa': '^', 'ga': 'D'}
+    labels = {
+        'greedy_ff': 'Greedy First-Fit',
+        'greedy_mw': 'Greedy Min-Growth',
+        'sa': 'Simulated Annealing',
+        'ga': 'Genetic Algorithm'
+    }
 
-    plt.errorbar(ksp_mw_data['num_demands'],
-                 ksp_mw_data['avg_watermark'],
-                 yerr=ksp_mw_data['std_watermark'],
-                 marker='s', markersize=8, linewidth=2,
-                 capsize=5, capthick=2,
-                 label='k-SP-MW (Proposed)',
-                 color='#3498DB')
+    for alg in algorithms:
+        data = summary[summary['algorithm'] == alg]
+        ax.errorbar(data['num_demands'], data['mean'], yerr=data['std'],
+                   marker=markers[alg], markersize=8, linewidth=2,
+                   capsize=5, capthick=2,
+                   label=labels[alg], color=colors[alg])
 
-    # Labels and title
-    plt.xlabel('Number of Demands', fontsize=14, fontweight='bold')
-    plt.ylabel('Maximum Watermark (slots)', fontsize=14, fontweight='bold')
-    plt.title('Spectrum Efficiency: Watermark Comparison', fontsize=16, fontweight='bold')
+    ax.set_xlabel('Número de Demandas', fontsize=12, fontweight='bold')
+    ax.set_ylabel('Max Slot Used (promedio)', fontsize=12, fontweight='bold')
+    ax.set_title('Comparación de Algoritmos: Uso de Espectro', fontsize=14, fontweight='bold')
+    ax.legend(loc='upper left', fontsize=10)
+    ax.grid(True, alpha=0.3, linestyle='--')
+    ax.set_xticks(summary['num_demands'].unique())
 
-    # Grid and legend
-    plt.grid(True, alpha=0.3, linestyle='--')
-    plt.legend(fontsize=12, loc='upper left')
-
-    # Tight layout and save
     plt.tight_layout()
-    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    output_file = Path(__file__).parent.parent / 'results' / 'max_slot_comparison.png'
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
-    print(f"Watermark plot saved to: {output_file}")
+    print(f"✓ Guardado: {output_file}")
     plt.close()
 
+def plot_execution_time(df):
+    """Gráfico de Tiempo de Ejecución"""
+    fig, ax = plt.subplots(figsize=(10, 6))
 
-def plot_blocking_probability(df, output_file='results/blocking_probability.png'):
-    """
-    Plot blocking probability comparison between SP-FF and k-SP-MW.
+    # Calcular promedio por algoritmo y tamaño
+    summary = df.groupby(['num_demands', 'algorithm'])['execution_time'].mean().reset_index()
 
-    Args:
-        df (pd.DataFrame): Results dataframe
-        output_file (str): Output filename for plot
-    """
-    # Separate data by algorithm
-    sp_ff_data = df[df['algorithm'] == 'sp_ff'].sort_values('num_demands')
-    ksp_mw_data = df[df['algorithm'] == 'ksp_mw'].sort_values('num_demands')
+    algorithms = ['greedy_ff', 'greedy_mw', 'sa', 'ga']
+    colors = {'greedy_ff': '#FF6B6B', 'greedy_mw': '#4ECDC4', 'sa': '#45B7D1', 'ga': '#96CEB4'}
+    markers = {'greedy_ff': 'o', 'greedy_mw': 's', 'sa': '^', 'ga': 'D'}
+    labels = {
+        'greedy_ff': 'Greedy First-Fit',
+        'greedy_mw': 'Greedy Min-Growth',
+        'sa': 'Simulated Annealing',
+        'ga': 'Genetic Algorithm'
+    }
 
-    # Create figure
-    plt.figure(figsize=(10, 6))
+    for alg in algorithms:
+        data = summary[summary['algorithm'] == alg]
+        ax.plot(data['num_demands'], data['execution_time'],
+               marker=markers[alg], markersize=8, linewidth=2,
+               label=labels[alg], color=colors[alg])
 
-    # Plot lines with error bars
-    plt.errorbar(sp_ff_data['num_demands'],
-                 sp_ff_data['avg_blocking_prob'],
-                 yerr=sp_ff_data['std_blocking_prob'],
-                 marker='o', markersize=8, linewidth=2,
-                 capsize=5, capthick=2,
-                 label='SP-FF (Benchmark)',
-                 color='#E74C3C')
+    ax.set_xlabel('Número de Demandas', fontsize=12, fontweight='bold')
+    ax.set_ylabel('Tiempo de Ejecución (segundos)', fontsize=12, fontweight='bold')
+    ax.set_title('Comparación de Tiempos de Ejecución', fontsize=14, fontweight='bold')
+    ax.legend(loc='upper left', fontsize=10)
+    ax.grid(True, alpha=0.3, linestyle='--')
+    ax.set_xticks(summary['num_demands'].unique())
+    ax.set_yscale('log')
 
-    plt.errorbar(ksp_mw_data['num_demands'],
-                 ksp_mw_data['avg_blocking_prob'],
-                 yerr=ksp_mw_data['std_blocking_prob'],
-                 marker='s', markersize=8, linewidth=2,
-                 capsize=5, capthick=2,
-                 label='k-SP-MW (Proposed)',
-                 color='#3498DB')
-
-    # Labels and title
-    plt.xlabel('Number of Demands', fontsize=14, fontweight='bold')
-    plt.ylabel('Blocking Probability', fontsize=14, fontweight='bold')
-    plt.title('Network Reliability: Blocking Probability Comparison', fontsize=16, fontweight='bold')
-
-    # Grid and legend
-    plt.grid(True, alpha=0.3, linestyle='--')
-    plt.legend(fontsize=12, loc='upper left')
-
-    # Tight layout and save
     plt.tight_layout()
-    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    output_file = Path(__file__).parent.parent / 'results' / 'execution_time_comparison.png'
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
-    print(f"Blocking probability plot saved to: {output_file}")
+    print(f"✓ Guardado: {output_file}")
     plt.close()
 
+def plot_algorithm_bars(df):
+    """Gráfico de barras comparando algoritmos"""
+    # Promediar sobre todos los tamaños
+    summary = df.groupby('algorithm').agg({
+        'max_slot_used': 'mean',
+        'total_spectrum': 'mean',
+        'execution_time': 'mean'
+    }).reset_index()
 
-def plot_combined_comparison(df, output_file='results/combined_comparison.png'):
-    """
-    Create a combined figure with both metrics side by side.
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
 
-    Args:
-        df (pd.DataFrame): Results dataframe
-        output_file (str): Output filename for plot
-    """
-    # Separate data by algorithm
-    sp_ff_data = df[df['algorithm'] == 'sp_ff'].sort_values('num_demands')
-    ksp_mw_data = df[df['algorithm'] == 'ksp_mw'].sort_values('num_demands')
+    algorithms = ['greedy_ff', 'greedy_mw', 'sa', 'ga']
+    colors = {'greedy_ff': '#FF6B6B', 'greedy_mw': '#4ECDC4', 'sa': '#45B7D1', 'ga': '#96CEB4'}
+    labels = {
+        'greedy_ff': 'Greedy\nFirst-Fit',
+        'greedy_mw': 'Greedy\nMin-Growth',
+        'sa': 'Simulated\nAnnealing',
+        'ga': 'Genetic\nAlgorithm'
+    }
 
-    # Create figure with 2 subplots
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
+    # Subplot 1: Max Slot Used
+    x = np.arange(len(algorithms))
+    values = [summary[summary['algorithm'] == alg]['max_slot_used'].values[0] for alg in algorithms]
+    bars1 = ax1.bar(x, values, color=[colors[alg] for alg in algorithms], alpha=0.8, edgecolor='black', linewidth=1.5)
 
-    # Plot 1: Watermark
-    ax1.errorbar(sp_ff_data['num_demands'],
-                 sp_ff_data['avg_watermark'],
-                 yerr=sp_ff_data['std_watermark'],
-                 marker='o', markersize=8, linewidth=2,
-                 capsize=5, capthick=2,
-                 label='SP-FF',
-                 color='#E74C3C')
+    ax1.set_ylabel('Max Slot Used (promedio)', fontsize=12, fontweight='bold')
+    ax1.set_title('Uso de Espectro por Algoritmo', fontsize=13, fontweight='bold')
+    ax1.set_xticks(x)
+    ax1.set_xticklabels([labels[alg] for alg in algorithms], fontsize=10)
+    ax1.grid(True, alpha=0.3, axis='y', linestyle='--')
 
-    ax1.errorbar(ksp_mw_data['num_demands'],
-                 ksp_mw_data['avg_watermark'],
-                 yerr=ksp_mw_data['std_watermark'],
-                 marker='s', markersize=8, linewidth=2,
-                 capsize=5, capthick=2,
-                 label='k-SP-MW',
-                 color='#3498DB')
+    # Añadir valores en las barras
+    for bar in bars1:
+        height = bar.get_height()
+        ax1.text(bar.get_x() + bar.get_width()/2., height,
+                f'{height:.1f}',
+                ha='center', va='bottom', fontweight='bold', fontsize=10)
 
-    ax1.set_xlabel('Number of Demands', fontsize=12, fontweight='bold')
-    ax1.set_ylabel('Maximum Watermark (slots)', fontsize=12, fontweight='bold')
-    ax1.set_title('(a) Spectrum Efficiency', fontsize=14, fontweight='bold')
+    # Subplot 2: Tiempo de Ejecución
+    values2 = [summary[summary['algorithm'] == alg]['execution_time'].values[0] for alg in algorithms]
+    bars2 = ax2.bar(x, values2, color=[colors[alg] for alg in algorithms], alpha=0.8, edgecolor='black', linewidth=1.5)
+
+    ax2.set_ylabel('Tiempo de Ejecución (segundos)', fontsize=12, fontweight='bold')
+    ax2.set_title('Tiempo por Algoritmo', fontsize=13, fontweight='bold')
+    ax2.set_xticks(x)
+    ax2.set_xticklabels([labels[alg] for alg in algorithms], fontsize=10)
+    ax2.grid(True, alpha=0.3, axis='y', linestyle='--')
+    ax2.set_yscale('log')
+
+    # Añadir valores en las barras
+    for bar in bars2:
+        height = bar.get_height()
+        ax2.text(bar.get_x() + bar.get_width()/2., height,
+                f'{height:.2f}s',
+                ha='center', va='bottom', fontweight='bold', fontsize=9)
+
+    plt.tight_layout()
+    output_file = Path(__file__).parent.parent / 'results' / 'algorithm_comparison_bars.png'
+    plt.savefig(output_file, dpi=300, bbox_inches='tight')
+    print(f"✓ Guardado: {output_file}")
+    plt.close()
+
+def plot_combined_comparison(df):
+    """Gráfico combinado con múltiples subplots"""
+    fig = plt.figure(figsize=(16, 10))
+    gs = fig.add_gridspec(2, 2, hspace=0.3, wspace=0.3)
+
+    algorithms = ['greedy_ff', 'greedy_mw', 'sa', 'ga']
+    colors = {'greedy_ff': '#FF6B6B', 'greedy_mw': '#4ECDC4', 'sa': '#45B7D1', 'ga': '#96CEB4'}
+    markers = {'greedy_ff': 'o', 'greedy_mw': 's', 'sa': '^', 'ga': 'D'}
+    labels = {
+        'greedy_ff': 'Greedy First-Fit',
+        'greedy_mw': 'Greedy Min-Growth',
+        'sa': 'Simulated Annealing',
+        'ga': 'Genetic Algorithm'
+    }
+
+    # Subplot 1: Max Slot Used
+    ax1 = fig.add_subplot(gs[0, 0])
+    summary_slot = df.groupby(['num_demands', 'algorithm'])['max_slot_used'].agg(['mean', 'std']).reset_index()
+    for alg in algorithms:
+        data = summary_slot[summary_slot['algorithm'] == alg]
+        ax1.errorbar(data['num_demands'], data['mean'], yerr=data['std'],
+                    marker=markers[alg], markersize=7, linewidth=2,
+                    capsize=4, label=labels[alg], color=colors[alg])
+    ax1.set_xlabel('Número de Demandas', fontsize=11, fontweight='bold')
+    ax1.set_ylabel('Max Slot Used', fontsize=11, fontweight='bold')
+    ax1.set_title('(A) Uso de Espectro', fontsize=12, fontweight='bold')
+    ax1.legend(fontsize=9)
     ax1.grid(True, alpha=0.3, linestyle='--')
-    ax1.legend(fontsize=11)
 
-    # Plot 2: Blocking Probability
-    ax2.errorbar(sp_ff_data['num_demands'],
-                 sp_ff_data['avg_blocking_prob'],
-                 yerr=sp_ff_data['std_blocking_prob'],
-                 marker='o', markersize=8, linewidth=2,
-                 capsize=5, capthick=2,
-                 label='SP-FF',
-                 color='#E74C3C')
-
-    ax2.errorbar(ksp_mw_data['num_demands'],
-                 ksp_mw_data['avg_blocking_prob'],
-                 yerr=ksp_mw_data['std_blocking_prob'],
-                 marker='s', markersize=8, linewidth=2,
-                 capsize=5, capthick=2,
-                 label='k-SP-MW',
-                 color='#3498DB')
-
-    ax2.set_xlabel('Number of Demands', fontsize=12, fontweight='bold')
-    ax2.set_ylabel('Blocking Probability', fontsize=12, fontweight='bold')
-    ax2.set_title('(b) Network Reliability', fontsize=14, fontweight='bold')
+    # Subplot 2: Tiempo de Ejecución
+    ax2 = fig.add_subplot(gs[0, 1])
+    summary_time = df.groupby(['num_demands', 'algorithm'])['execution_time'].mean().reset_index()
+    for alg in algorithms:
+        data = summary_time[summary_time['algorithm'] == alg]
+        ax2.plot(data['num_demands'], data['execution_time'],
+                marker=markers[alg], markersize=7, linewidth=2,
+                label=labels[alg], color=colors[alg])
+    ax2.set_xlabel('Número de Demandas', fontsize=11, fontweight='bold')
+    ax2.set_ylabel('Tiempo (segundos)', fontsize=11, fontweight='bold')
+    ax2.set_title('(B) Tiempo de Ejecución', fontsize=12, fontweight='bold')
+    ax2.legend(fontsize=9)
     ax2.grid(True, alpha=0.3, linestyle='--')
-    ax2.legend(fontsize=11)
+    ax2.set_yscale('log')
 
-    # Overall title
-    fig.suptitle('RMLSA Algorithm Comparison: SP-FF vs k-SP-MW',
-                 fontsize=16, fontweight='bold', y=1.00)
+    # Subplot 3: Utilización de Espectro
+    ax3 = fig.add_subplot(gs[1, 0])
+    summary_util = df.groupby(['num_demands', 'algorithm'])['utilization'].mean().reset_index()
+    for alg in algorithms:
+        data = summary_util[summary_util['algorithm'] == alg]
+        ax3.plot(data['num_demands'], data['utilization'],
+                marker=markers[alg], markersize=7, linewidth=2,
+                label=labels[alg], color=colors[alg])
+    ax3.set_xlabel('Número de Demandas', fontsize=11, fontweight='bold')
+    ax3.set_ylabel('Utilización (%)', fontsize=11, fontweight='bold')
+    ax3.set_title('(C) Utilización de Espectro', fontsize=12, fontweight='bold')
+    ax3.legend(fontsize=9)
+    ax3.grid(True, alpha=0.3, linestyle='--')
 
-    # Tight layout and save
-    plt.tight_layout()
-    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    # Subplot 4: Demandas Asignadas
+    ax4 = fig.add_subplot(gs[1, 1])
+    summary_assigned = df.groupby(['num_demands', 'algorithm']).agg({
+        'assigned': 'mean',
+        'total': 'first'
+    }).reset_index()
+    summary_assigned['percentage'] = (summary_assigned['assigned'] / summary_assigned['total']) * 100
+
+    for alg in algorithms:
+        data = summary_assigned[summary_assigned['algorithm'] == alg]
+        ax4.plot(data['num_demands'], data['percentage'],
+                marker=markers[alg], markersize=7, linewidth=2,
+                label=labels[alg], color=colors[alg])
+    ax4.set_xlabel('Número de Demandas', fontsize=11, fontweight='bold')
+    ax4.set_ylabel('Demandas Asignadas (%)', fontsize=11, fontweight='bold')
+    ax4.set_title('(D) Tasa de Asignación', fontsize=12, fontweight='bold')
+    ax4.legend(fontsize=9)
+    ax4.grid(True, alpha=0.3, linestyle='--')
+    ax4.set_ylim([75, 102])
+
+    fig.suptitle('Comparación Completa de Algoritmos de Optimización RMLSA',
+                 fontsize=16, fontweight='bold', y=0.995)
+
+    output_file = Path(__file__).parent.parent / 'results' / 'combined_comparison.png'
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
-    print(f"Combined comparison plot saved to: {output_file}")
+    print(f"✓ Guardado: {output_file}")
     plt.close()
 
+def main():
+    """Generar todos los gráficos"""
+    print("=" * 80)
+    print("GENERACIÓN DE GRÁFICOS - RMLSA Static Optimizer")
+    print("=" * 80)
 
-def generate_all_plots(input_file='results/metrics.csv'):
-    """
-    Generate all visualization plots from results file.
+    # Cargar resultados
+    print("\nCargando resultados...")
+    df = load_results()
+    print(f"✓ Cargados {len(df)} resultados")
 
-    Args:
-        input_file (str): Input CSV file with simulation results
-    """
-    print("="*80)
-    print("GENERATING VISUALIZATION PLOTS")
-    print("="*80)
-
-    # Load results
-    if not os.path.exists(input_file):
-        print(f"Error: Results file not found: {input_file}")
-        print("Please run 'python scripts/run_experiments.py' first.")
-        return
-
-    df = pd.read_csv(input_file)
-    print(f"Loaded results from: {input_file}")
-    print(f"  Rows: {len(df)}")
-    print(f"  Algorithms: {df['algorithm'].unique()}")
-    print(f"  Demand loads: {sorted(df['num_demands'].unique())}")
-
-    # Generate plots
-    print("\nGenerating plots...")
-    plot_watermark_comparison(df)
-    plot_blocking_probability(df)
+    # Generar gráficos
+    print("\nGenerando gráficos...")
+    plot_max_slot_comparison(df)
+    plot_execution_time(df)
+    plot_algorithm_bars(df)
     plot_combined_comparison(df)
 
-    print("\n" + "="*80)
-    print("All plots generated successfully!")
-    print("="*80)
-
+    print("\n" + "=" * 80)
+    print("✅ GRÁFICOS GENERADOS EXITOSAMENTE")
+    print("=" * 80)
+    print("\nArchivos generados en results/:")
+    print("  - max_slot_comparison.png")
+    print("  - execution_time_comparison.png")
+    print("  - algorithm_comparison_bars.png")
+    print("  - combined_comparison.png")
+    print("=" * 80)
 
 if __name__ == "__main__":
-    generate_all_plots('results/metrics.csv')
+    main()

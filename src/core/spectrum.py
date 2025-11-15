@@ -52,14 +52,14 @@ def calculate_watermark_increment(network, path, num_slots):
         # No fit possible - return None to indicate blocking
         return None
 
-    # Calculate what the new watermark would be
+    # Calculate what the new max slot used would be
     end_slot = start_slot + num_slots
-    current_watermark = network.get_max_watermark()
+    current_max_slot = network.get_max_slot_used()
 
-    # New watermark is the max of current and what this would create
-    new_watermark = max(current_watermark, end_slot)
+    # New max slot is the max of current and what this would create
+    new_max_slot = max(current_max_slot, end_slot)
 
-    return new_watermark
+    return new_max_slot
 
 
 def best_fit(network, path, num_slots):

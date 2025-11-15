@@ -164,5 +164,5 @@ if __name__ == "__main__":
     print(f"  Assigned: {assigned}")
     print(f"  Blocked: {blocked}")
     print(f"  Blocking Rate: {blocked / len(demands) * 100:.2f}%")
-    print(f"  Max Watermark: {network.get_max_watermark()}")
+    print(f"  Max Slot Used: {network.get_max_slot_used()}")
     print(f"  Utilization: {network.get_spectrum_utilization():.2f}%")

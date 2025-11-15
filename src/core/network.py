@@ -105,35 +105,36 @@ class Network:
             link = self._get_link_key(path[i], path[i + 1])
             self.spectrum[link][start_slot:end_slot] = False
 
-    def get_max_watermark(self):
+    def get_max_slot_used(self):
         """
-        Get the maximum watermark across all links.
+        Get the maximum slot index used across all links.
 
-        Watermark = highest slot index used + 1 (for 0-indexed slots).
+        In static RMLSA, this represents the spectrum compactness metric:
+        the highest slot index that needs to be provisioned across the network.
 
         Returns:
-            int: Maximum watermark (highest used slot + 1) across all links
+            int: Maximum slot index used + 1 (for 0-indexed slots)
         """
-        max_watermark = 0
+        max_slot = 0
 
         for link, slots in self.spectrum.items():
             # Find the highest occupied slot
             occupied_indices = np.where(slots)[0]
             if len(occupied_indices) > 0:
-                link_watermark = occupied_indices[-1] + 1
-                max_watermark = max(max_watermark, link_watermark)
+                link_max = occupied_indices[-1] + 1
+                max_slot = max(max_slot, link_max)
 
-        return max_watermark
+        return max_slot
 
-    def get_link_watermark(self, link):
+    def get_link_max_slot_used(self, link):
         """
-        Get watermark for a specific link.
+        Get maximum slot index used for a specific link.
 
         Args:
             link (tuple): Link as (u, v) tuple
 
         Returns:
-            int: Watermark for this link
+            int: Maximum slot index used + 1 for this link
         """
         link_key = self._get_link_key(link[0], link[1])
         slots = self.spectrum[link_key]
@@ -142,6 +143,21 @@ class Network:
         if len(occupied_indices) > 0:
             return occupied_indices[-1] + 1
         return 0
+
+    def get_total_spectrum_consumption(self):
+        """
+        Calculate total spectrum slots consumed across all links.
+
+        This metric counts the total number of occupied slots summed
+        across all links in the network.
+
+        Returns:
+            int: Total number of occupied slots across all links
+        """
+        total_used = 0
+        for link, slots in self.spectrum.items():
+            total_used += np.sum(slots)
+        return total_used
 
     def get_spectrum_utilization(self):
         """
@@ -162,6 +178,38 @@ class Network:
 
         return (used_slots / total_slots) * 100.0
 
+    def get_fragmentation_index(self):
+        """
+        Calculate spectrum fragmentation index.
+
+        Fragmentation measures how scattered the spectrum allocation is.
+        Lower values indicate more compact (less fragmented) allocation.
+
+        Uses the number of contiguous free blocks as a fragmentation metric.
+
+        Returns:
+            float: Average number of free fragments per link
+        """
+        total_fragments = 0
+
+        for link, slots in self.spectrum.items():
+            # Count transitions from free to occupied
+            fragments = 0
+            in_free_block = False
+
+            for slot in slots:
+                if not slot:  # Free slot
+                    if not in_free_block:
+                        fragments += 1
+                        in_free_block = True
+                else:  # Occupied slot
+                    in_free_block = False
+
+            total_fragments += fragments
+
+        num_links = len(self.spectrum)
+        return total_fragments / num_links if num_links > 0 else 0.0
+
     def reset(self):
         """Reset all spectrum allocations to empty."""
         for link in self.spectrum:
@@ -179,7 +227,7 @@ if __name__ == "__main__":
     network = Network(topology, num_slots=100)
 
     print(f"Network initialized with {network.num_slots} slots per link")
-    print(f"Initial watermark: {network.get_max_watermark()}")
+    print(f"Initial max slot used: {network.get_max_slot_used()}")
     print(f"Initial utilization: {network.get_spectrum_utilization():.2f}%")
 
     # Test allocation
@@ -189,7 +237,7 @@ if __name__ == "__main__":
     # Allocate 5 slots starting at slot 10
     success = network.allocate_spectrum(test_path, start_slot=10, num_slots=5)
     print(f"Allocation (slots 10-14): {success}")
-    print(f"Watermark after allocation: {network.get_max_watermark()}")
+    print(f"Max slot used after allocation: {network.get_max_slot_used()}")
     print(f"Utilization: {network.get_spectrum_utilization():.2f}%")
 
     # Try to allocate overlapping slots (should fail)
@@ -199,4 +247,4 @@ if __name__ == "__main__":
     # Allocate non-overlapping slots
     success = network.allocate_spectrum(test_path, start_slot=20, num_slots=3)
     print(f"Non-overlapping allocation (slots 20-22): {success}")
-    print(f"Final watermark: {network.get_max_watermark()}")
+    print(f"Final max slot used: {network.get_max_slot_used()}")
