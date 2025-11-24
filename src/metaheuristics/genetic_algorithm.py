@@ -11,7 +11,6 @@ import networkx as nx
 
 from ..core.solution import Solution, Assignment, create_empty_solution
 from ..algorithms.sp_ff import sp_ff_assign
-from ..algorithms.ksp_mw import ksp_mw_assign
 from ..core.routing import get_path_info
 from data.modulation import calculate_required_slots
 
@@ -171,12 +170,9 @@ class GeneticAlgorithm:
 
         return solution
 
-    def _create_greedy_solution(self, algorithm='ksp_mw') -> Solution:
+    def _create_greedy_solution(self) -> Solution:
         """
-        Create a solution using greedy heuristic.
-
-        Args:
-            algorithm: 'sp_ff' or 'ksp_mw'
+        Create a solution using First-Fit greedy heuristic.
 
         Returns:
             Solution created by greedy algorithm
@@ -196,14 +192,9 @@ class GeneticAlgorithm:
 
         for idx in sorted_indices:
             demand = self.demands[idx]
-
-            if algorithm == 'ksp_mw':
-                result = ksp_mw_assign(temp_network, demand, k=self.k_paths)
-            else:
-                result = sp_ff_assign(temp_network, demand)
+            result = sp_ff_assign(temp_network, demand)
 
             if result:
-                # Result is a dict with 'path', 'start_slot', 'num_slots', etc.
                 path = result['path']
                 start_slot = result['start_slot']
                 num_slots = result['num_slots']
@@ -216,7 +207,7 @@ class GeneticAlgorithm:
         Create initial population.
 
         Mix of:
-        - Greedy solutions (different algorithms/orderings)
+        - Greedy solution (First-Fit)
         - Random solutions
 
         Returns:
@@ -224,9 +215,8 @@ class GeneticAlgorithm:
         """
         population = []
 
-        # Add greedy solutions with different strategies
-        population.append(self._create_greedy_solution('ksp_mw'))
-        population.append(self._create_greedy_solution('sp_ff'))
+        # Add greedy solution
+        population.append(self._create_greedy_solution())
 
         # Fill rest with random solutions
         while len(population) < self.population_size:

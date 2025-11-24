@@ -8,9 +8,7 @@ are known in advance and assigned simultaneously using optimization algorithms
 from src.core.network import Network
 from src.core.solution import Solution, Assignment, create_empty_solution
 from src.algorithms.sp_ff import sp_ff_assign
-from src.algorithms.ksp_mw import ksp_mw_assign
 from src.metaheuristics.genetic_algorithm import GeneticAlgorithm
-from src.metaheuristics.simulated_annealing import SimulatedAnnealing
 import time
 
 
@@ -45,9 +43,7 @@ class StaticOptimizer:
             demands (list): List of demand dictionaries
             algorithm (str): Algorithm to use:
                 - 'ga': Genetic Algorithm (metaheuristic)
-                - 'sa': Simulated Annealing (metaheuristic)
-                - 'greedy_ff': Greedy First-Fit heuristic (baseline)
-                - 'greedy_mw': Greedy Min-Watermark heuristic (baseline)
+                - 'ff': First-Fit heuristic (baseline)
             verbose (bool): Print progress information
             **kwargs: Additional algorithm-specific parameters
 
@@ -77,12 +73,8 @@ class StaticOptimizer:
         # Run optimization based on algorithm
         if algorithm == 'ga':
             solution, convergence = self._optimize_ga(network, demands, verbose, **kwargs)
-        elif algorithm == 'sa':
-            solution, convergence = self._optimize_sa(network, demands, verbose, **kwargs)
-        elif algorithm == 'greedy_ff':
-            solution, convergence = self._optimize_greedy(network, demands, 'sp_ff', verbose, **kwargs)
-        elif algorithm == 'greedy_mw':
-            solution, convergence = self._optimize_greedy(network, demands, 'ksp_mw', verbose, **kwargs)
+        elif algorithm == 'ff':
+            solution, convergence = self._optimize_ff(network, demands, verbose, **kwargs)
         else:
             raise ValueError(f"Unknown algorithm: {algorithm}")
 
@@ -127,37 +119,13 @@ class StaticOptimizer:
 
         return solution, convergence
 
-    def _optimize_sa(self, network, demands, verbose, **kwargs):
-        """Run Simulated Annealing optimization."""
-        sa = SimulatedAnnealing(
-            network=network,
-            demands=demands,
-            initial_temperature=kwargs.get('initial_temperature', 1000.0),
-            final_temperature=kwargs.get('final_temperature', 0.1),
-            cooling_rate=kwargs.get('cooling_rate', 0.95),
-            iterations_per_temp=kwargs.get('iterations_per_temp', 100),
-            k_paths=kwargs.get('k_paths', 3)
-        )
-
-        solution = sa.optimize(verbose=verbose)
-
-        convergence = {
-            'temperature_history': sa.temperature_history,
-            'best_fitness_history': sa.best_fitness_history,
-            'current_fitness_history': sa.current_fitness_history,
-            'acceptance_rate_history': sa.acceptance_rate_history
-        }
-
-        return solution, convergence
-
-    def _optimize_greedy(self, network, demands, greedy_type, verbose, **kwargs):
+    def _optimize_ff(self, network, demands, verbose, **kwargs):
         """
-        Run greedy heuristic (baseline for comparison).
+        Run First-Fit heuristic (baseline for comparison).
 
         Note: This is NOT true static optimization - it's a sequential
         greedy heuristic included as a baseline for comparison.
         """
-        k = kwargs.get('k_paths', 3)
         solution = create_empty_solution(network, demands)
 
         # Sort demands by bandwidth (descending)
@@ -168,18 +136,13 @@ class StaticOptimizer:
         )
 
         if verbose:
-            print(f"Running greedy heuristic ({greedy_type})...")
+            print(f"Running First-Fit heuristic...")
 
         for idx in sorted_indices:
             demand = demands[idx]
-
-            if greedy_type == 'ksp_mw':
-                result = ksp_mw_assign(network, demand, k=k)
-            else:  # sp_ff
-                result = sp_ff_assign(network, demand)
+            result = sp_ff_assign(network, demand)
 
             if result:
-                # Result is a dict with 'path', 'start_slot', 'num_slots', etc.
                 path = result['path']
                 start_slot = result['start_slot']
                 num_slots = result['num_slots']
@@ -223,14 +186,14 @@ class StaticOptimizer:
         Args:
             demands (list): List of demands
             algorithms (list): List of algorithm names to compare
-                             Default: ['greedy_ff', 'greedy_mw', 'sa', 'ga']
+                             Default: ['ff', 'ga']
             verbose (bool): Print progress
 
         Returns:
             dict: Results for each algorithm
         """
         if algorithms is None:
-            algorithms = ['greedy_ff', 'greedy_mw', 'sa', 'ga']
+            algorithms = ['ff', 'ga']
 
         results = {}
 
@@ -307,15 +270,15 @@ if __name__ == "__main__":
 
     # Create topology and optimizer
     topology = create_nsfnet_topology()
-    optimizer = StaticOptimizer(topology, num_slots=100)
+    optimizer = StaticOptimizer(topology, num_slots=320)
 
-    # Generate test demands
-    num_demands = 20
+    # Generate test demands (reduced to ensure complete solutions)
+    num_demands = 15
     demands = generate_demand_set(num_demands, seed=42)
 
-    # Compare all algorithms
+    # Compare FF vs GA
     results = optimizer.compare_algorithms(
         demands,
-        algorithms=['greedy_ff', 'greedy_mw', 'sa', 'ga'],
+        algorithms=['ff', 'ga'],
         verbose=True
     )
