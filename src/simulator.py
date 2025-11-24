@@ -177,6 +177,8 @@ class StaticOptimizer:
         print(f"Path Metrics:")
         print(f"  Average Path Length: {metrics['avg_path_length']:.2f} hops")
         print(f"  Maximum Path Length: {metrics['max_path_length']} hops")
+        print(f"  Total Distance: {metrics['total_distance_km']:,} km")
+        print(f"  Average Path Distance: {metrics['avg_path_distance_km']:.1f} km")
         print(f"{'='*80}\n")
 
     def compare_algorithms(self, demands, algorithms=None, verbose=True):
@@ -217,28 +219,28 @@ class StaticOptimizer:
 
     def _print_comparison(self, results):
         """Print comparison table of all algorithms."""
-        print(f"\n{'='*80}")
+        print(f"\n{'='*100}")
         print(f"ALGORITHM COMPARISON")
-        print(f"{'='*80}\n")
+        print(f"{'='*100}\n")
 
         # Header
-        print(f"{'Algorithm':<15} {'Assigned':<10} {'Max Slot':<10} {'Total Spec':<12} "
-              f"{'Util %':<8} {'Time (s)':<10}")
-        print(f"{'-'*80}")
+        print(f"{'Algorithm':<12} {'Assigned':<10} {'Max Slot':<10} {'Total Spec':<12} "
+              f"{'Distance (km)':<15} {'Time (s)':<10}")
+        print(f"{'-'*100}")
 
         # Data rows
         for alg_name, result in results.items():
             m = result['metrics']
             print(
-                f"{alg_name.upper():<15} "
+                f"{alg_name.upper():<12} "
                 f"{m['assigned_count']:>3}/{m['total_demands']:<3} "
                 f"{m['max_slot_used']:<10} "
                 f"{m['total_spectrum_consumption']:<12} "
-                f"{m['spectrum_utilization']:<7.2f}% "
+                f"{m['total_distance_km']:<15,} "
                 f"{result['execution_time']:<10.2f}"
             )
 
-        print(f"{'='*80}\n")
+        print(f"{'='*100}\n")
 
         # Find best solution
         valid_results = {

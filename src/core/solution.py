@@ -252,14 +252,23 @@ class Solution:
 
         is_valid, errors = self.validate()
 
-        # Calculate path length statistics
+        # Calculate path length and distance statistics
         path_lengths = []
+        path_distances = []
         for assignment in self.assignments:
             if assignment is not None:
                 path_lengths.append(len(assignment.path) - 1)
+                # Calculate distance for this path
+                path_distance = 0
+                for i in range(len(assignment.path) - 1):
+                    u, v = assignment.path[i], assignment.path[i + 1]
+                    path_distance += self.network.topology[u][v]['distance']
+                path_distances.append(path_distance)
 
         avg_path_length = np.mean(path_lengths) if path_lengths else 0
         max_path_length = max(path_lengths) if path_lengths else 0
+        total_distance = sum(path_distances) if path_distances else 0
+        avg_path_distance = np.mean(path_distances) if path_distances else 0
 
         return {
             'is_valid': is_valid,
@@ -273,6 +282,8 @@ class Solution:
             'fragmentation_index': self.network.get_fragmentation_index(),
             'avg_path_length': avg_path_length,
             'max_path_length': max_path_length,
+            'total_distance_km': total_distance,
+            'avg_path_distance_km': avg_path_distance,
             'validation_errors': errors
         }
 
