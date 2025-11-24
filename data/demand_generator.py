@@ -63,6 +63,37 @@ class DemandGenerator:
 
         return demands
 
+    def generate_all_pairs(self, bandwidth_range=(25, 100)):
+        """
+        Generate demands for ALL possible source-destination pairs.
+
+        For a network with N nodes, this generates N*(N-1) demands
+        (one for each directed pair where source != destination).
+
+        Args:
+            bandwidth_range (tuple): (min, max) bandwidth in Gbps
+
+        Returns:
+            list: List of demand dictionaries (N*(N-1) demands)
+        """
+        demands = []
+        demand_id = 0
+
+        for source in range(self.num_nodes):
+            for destination in range(self.num_nodes):
+                if source != destination:
+                    bandwidth = self.rng.randint(bandwidth_range[0], bandwidth_range[1] + 1)
+                    demand = {
+                        'id': demand_id,
+                        'source': source,
+                        'destination': destination,
+                        'bandwidth': bandwidth
+                    }
+                    demands.append(demand)
+                    demand_id += 1
+
+        return demands
+
     def generate_exponential_bandwidth(self, num_demands, mean_bandwidth=50):
         """
         Generate demands with exponentially distributed bandwidth.
@@ -143,6 +174,24 @@ def generate_demand_set(num_demands, num_nodes=14, bandwidth_range=(25, 100), se
     """
     generator = DemandGenerator(num_nodes, seed=seed)
     return generator.generate_uniform_demands(num_demands, bandwidth_range)
+
+
+def generate_all_pairs_demand_set(num_nodes=14, bandwidth_range=(25, 100), seed=None):
+    """
+    Generate demands for ALL possible source-destination pairs.
+
+    For NSFNET (14 nodes): generates 14*13 = 182 demands.
+
+    Args:
+        num_nodes (int): Number of nodes in network (default: 14 for NSFNET)
+        bandwidth_range (tuple): (min, max) bandwidth in Gbps
+        seed (int, optional): Random seed
+
+    Returns:
+        list: List of demand dictionaries (num_nodes * (num_nodes-1) demands)
+    """
+    generator = DemandGenerator(num_nodes, seed=seed)
+    return generator.generate_all_pairs(bandwidth_range)
 
 
 if __name__ == "__main__":
