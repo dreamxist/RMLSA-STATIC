@@ -1,83 +1,72 @@
 """
-SP-FF Algorithm (Shortest Path - First Fit)
+KSP-FF Algorithm (K-Shortest Paths - First Fit)
 Benchmark algorithm for RMLSA problem
 """
-from src.core.routing import get_shortest_path, get_path_info
+import networkx as nx
+from src.core.routing import get_path_info
 from src.core.spectrum import first_fit
 from data.modulation import calculate_required_slots
 
 
-def sp_ff_assign(network, demand):
+def sp_ff_assign(network, demand, k=3):
     """
-    Assign a demand using SP-FF algorithm.
+    Assign a demand using K-Shortest Paths with First-Fit algorithm.
 
     Algorithm steps:
-    1. Find the shortest path (SP) between source and destination
-    2. Calculate required slots based on path distance and bandwidth
-    3. Use First-Fit (FF) to assign spectrum on that path
-    4. If successful, allocate and return assignment info
-    5. If failed, return None (demand is blocked)
+    1. Find k shortest paths between source and destination
+    2. For each path, try to assign using First-Fit
+    3. Return first successful assignment
+    4. If all paths fail, return None (demand is blocked)
 
     Args:
         network (Network): Network object managing topology and spectrum
         demand (dict): Demand with 'source', 'destination', 'bandwidth'
+        k (int): Number of shortest paths to try (default: 3)
 
     Returns:
         dict or None: Assignment info if successful, None if blocked
-                      Assignment info contains:
-                      - path: List of nodes
-                      - start_slot: Starting slot index
-                      - num_slots: Number of slots allocated
-                      - modulation: Modulation format used
-                      - distance: Path distance in km
     """
     source = demand['source']
     destination = demand['destination']
     bandwidth = demand['bandwidth']
 
-    # Step 1: Find shortest path
-    path = get_shortest_path(network.topology, source, destination)
-
-    if path is None:
-        # No route exists (shouldn't happen in connected network)
+    # Step 1: Find k shortest paths
+    try:
+        paths = list(nx.shortest_simple_paths(
+            network.topology, source, destination
+        ))[:k]
+    except nx.NetworkXNoPath:
         return None
 
-    # Get path information
-    path_info = get_path_info(network.topology, path)
-    distance = path_info['distance']
-
-    # Step 2: Calculate required slots based on distance and bandwidth
-    num_slots, modulation_format = calculate_required_slots(bandwidth, distance)
-
-    if num_slots is None:
-        # Distance too long for any modulation format
+    if not paths:
         return None
 
-    # Step 3: Find spectrum using First-Fit
-    start_slot = first_fit(network, path, num_slots)
+    # Step 2: Try each path with First-Fit
+    for path in paths:
+        path_info = get_path_info(network.topology, path)
+        distance = path_info['distance']
 
-    if start_slot is None:
-        # No available spectrum - demand is blocked
-        return None
+        num_slots, modulation_format = calculate_required_slots(bandwidth, distance)
 
-    # Step 4: Allocate spectrum
-    success = network.allocate_spectrum(path, start_slot, num_slots)
+        if num_slots is None:
+            continue
 
-    if not success:
-        # Allocation failed (shouldn't happen if first_fit succeeded)
-        return None
+        start_slot = first_fit(network, path, num_slots)
 
-    # Return assignment information
-    assignment = {
-        'path': path,
-        'start_slot': start_slot,
-        'num_slots': num_slots,
-        'modulation': modulation_format,
-        'distance': distance,
-        'num_hops': path_info['num_hops']
-    }
+        if start_slot is not None:
+            success = network.allocate_spectrum(path, start_slot, num_slots)
 
-    return assignment
+            if success:
+                return {
+                    'path': path,
+                    'start_slot': start_slot,
+                    'num_slots': num_slots,
+                    'modulation': modulation_format,
+                    'distance': distance,
+                    'num_hops': path_info['num_hops']
+                }
+
+    return None
 
 
 if __name__ == "__main__":

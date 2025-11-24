@@ -272,8 +272,8 @@ if __name__ == "__main__":
     topology = create_nsfnet_topology()
     optimizer = StaticOptimizer(topology, num_slots=320)
 
-    # Generate test demands (reduced to ensure complete solutions)
-    num_demands = 15
+    # Generate test demands
+    num_demands = 30
     demands = generate_demand_set(num_demands, seed=42)
 
     # Compare FF vs GA

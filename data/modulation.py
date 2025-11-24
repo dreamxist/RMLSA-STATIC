@@ -11,7 +11,7 @@ MODULATION_FORMATS = [
     ("16-QAM", 500, 4, 2),      # Highest efficiency, shortest reach
     ("8-QAM", 1000, 3, 3),      # Medium-high efficiency
     ("QPSK", 2000, 2, 4),       # Medium efficiency
-    ("BPSK", 4000, 1, 8),       # Lowest efficiency, longest reach
+    ("BPSK", 10000, 1, 8),      # Lowest efficiency, longest reach
 ]
 
 
