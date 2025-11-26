@@ -1,5 +1,4 @@
 import random
-import networkx as nx
 
 
 class DemandGenerator:

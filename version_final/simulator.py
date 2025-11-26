@@ -50,7 +50,7 @@ def plot_results(data):
     )
     ax1.set_ylabel("Max Slot Index", color=color1, fontweight="bold")
     ax1.tick_params(axis="y", labelcolor=color1)
-    ax1.set_ylim(0, 320)  # Fijamos el límite al total de slots para referencia visual
+    ax1.set_ylim(0, 320)
 
     # --- Eje Derecho: Asignaciones (Barras Verdes) ---
     ax2 = ax1.twinx()
@@ -66,7 +66,6 @@ def plot_results(data):
     ax2.set_ylabel("Demandas Asignadas", color=color2, fontweight="bold")
     ax2.tick_params(axis="y", labelcolor=color2)
 
-    # Ajustar escala para que se vean bien las barras (margen superior 10%)
     if assigned:
         ax2.set_ylim(0, max(assigned) * 1.15)
 
@@ -77,7 +76,6 @@ def plot_results(data):
     ax1.set_xticklabels(names, fontweight="bold")
     ax1.grid(axis="y", linestyle="--", alpha=0.5)
 
-    # Etiquetas de valor encima de las barras
     ax1.bar_label(bars1, padding=3, fmt="%d")
     ax2.bar_label(bars2, padding=3, fmt="%d")
 
@@ -97,10 +95,9 @@ def plot_results(data):
     plt.savefig(output_filename)
     print(f"\n[GRÁFICO] Guardado exitosamente en: '{output_filename}'")
 
-    # Intentar mostrar si el entorno lo permite
     try:
         plt.show()
-    except:
+    except Exception:
         pass
 
 
@@ -140,9 +137,6 @@ def main():
         print("Ejecutando 2: Algoritmo Genético (Optimización)...")
         f.write(">>> 2. Genetic Algorithm (Optimized)\n")
         start = time.time()
-
-        # Aumentamos población y generaciones para buscar el óptimo global
-        # Generaciones 150 aseguran convergencia
         ga = GeneticOptimizer(
             topo, demands_original, pop_size=50, generations=100, num_slots=NUM_SLOTS
         )
@@ -153,7 +147,6 @@ def main():
 
     print(f"Detalle de asignaciones guardado en: {filename}")
 
-    # Generar visualización final
     plot_results(results_summary)
 
 

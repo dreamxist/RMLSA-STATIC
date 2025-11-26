@@ -66,7 +66,6 @@ def get_path_distance(G, path):
 def get_k_shortest_paths(G, source, target, k=3):
     """Wrapper optimizado para Yen's algorithm de NetworkX."""
     try:
-        # shortest_simple_paths genera caminos ordenados por peso (distancia)
         generator = nx.shortest_simple_paths(G, source, target, weight="distance")
         paths = []
         for _ in range(k):

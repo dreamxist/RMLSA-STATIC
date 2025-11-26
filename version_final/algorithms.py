@@ -3,6 +3,7 @@ import numpy as np
 from topology import get_k_shortest_paths, get_path_distance, get_node_names
 from core import calculate_slots, Network
 
+
 # --- BASELINE: SP-FF ---
 def run_sp_ff(topology, demands, k=3, num_slots=640, export_file=None):
     """
@@ -65,7 +66,9 @@ def run_sp_ff(topology, demands, k=3, num_slots=640, export_file=None):
 
 # --- GENETIC ALGORITHM OPTIMIZADO ---
 class GeneticOptimizer:
-    def __init__(self, topology, demands, pop_size=100, generations=200, num_slots=320, k_paths=5):
+    def __init__(
+        self, topology, demands, pop_size=100, generations=200, num_slots=320, k_paths=5
+    ):
         self.topology = topology
         self.demands = demands
         self.pop_size = pop_size
@@ -74,8 +77,6 @@ class GeneticOptimizer:
         self.k_paths = k_paths
         self.rng = random.Random(42)
         self.path_cache = {}
-
-        # Precomputamos con K alto para dar libertad al GA
         self._precompute_paths(k=self.k_paths)
 
     def _precompute_paths(self, k):
@@ -110,9 +111,11 @@ class GeneticOptimizer:
 
         max_slot = net.get_max_slot_used()
 
-        score = (assigned * 1_000_000_000) + \
-                ((self.num_slots - max_slot) * 1_000_000) - \
-                (sum_start_indices)
+        score = (
+            (assigned * 1_000_000_000)
+            + ((self.num_slots - max_slot) * 1_000_000)
+            - (sum_start_indices)
+        )
 
         return score, max_slot, assigned, sum_start_indices
 
@@ -132,17 +135,20 @@ class GeneticOptimizer:
         population.append(lpf_chrome[:])
 
         # 2. Inicialización por Vecindad
-        print(f"[GA] Inicializando población con variaciones de LPF...")
+        print("[GA] Inicializando población con variaciones de LPF...")
         while len(population) < self.pop_size:
             clone = lpf_chrome[:]
             r = self.rng.random()
-            if r < 0.4: self._mutate_swap(clone)
-            elif r < 0.7: self._mutate_scramble(clone)
-            else: self._mutate_shift_priority(clone)
+            if r < 0.4:
+                self._mutate_swap(clone)
+            elif r < 0.7:
+                self._mutate_scramble(clone)
+            else:
+                self._mutate_shift_priority(clone)
             population.append(clone)
 
         best_chrome = None
-        best_fitness = -float('inf')
+        best_fitness = -float("inf")
 
         global_best_assigned = 0
         global_best_msi = self.num_slots
@@ -156,7 +162,7 @@ class GeneticOptimizer:
 
             for chrom in population:
                 fit_val, msi, asg, compactness = self._evaluate_fitness(chrom)
-                fitness_data.append( (chrom, fit_val, msi, asg, compactness) )
+                fitness_data.append((chrom, fit_val, msi, asg, compactness))
 
             fitness_data.sort(key=lambda x: x[1], reverse=True)
 
@@ -181,17 +187,20 @@ class GeneticOptimizer:
 
             if real_improvement:
                 stagnation_counter = 0
-                print(f"{gen:<5} | {current_msi:<5} | {current_asg:<10} | {current_compact:<30} <--- MEJORA MSI!")
+                print(
+                    f"{gen:<5} | {current_msi:<5} | {current_asg:<10} | {current_compact:<30} <--- MEJORA MSI!"
+                )
             else:
                 stagnation_counter += 1
 
             if gen % 10 == 0 and not real_improvement:
-                 print(f"{gen:<5} | {global_best_msi:<5} | {global_best_assigned:<10} | {current_compact:<30} (Estancado: {stagnation_counter})")
+                print(
+                    f"{gen:<5} | {global_best_msi:<5} | {global_best_assigned:<10} | {current_compact:<30} (Estancado: {stagnation_counter})"
+                )
 
             # --- CATACLISMO RÁPIDO ---
-            # Bajamos el umbral a 12 para que ocurra rápido
             if stagnation_counter >= 12:
-                print(f"   >>> CATACLISMO (Rápido): Reiniciando vecindad...")
+                print("   >>> CATACLISMO (Rápido): Reiniciando vecindad...")
                 next_pop = [best_chrome[:]]
 
                 while len(next_pop) < self.pop_size:
@@ -217,15 +226,20 @@ class GeneticOptimizer:
 
                 if self.rng.random() < 0.3:
                     r_mut = self.rng.random()
-                    if r_mut < 0.33: self._mutate_swap(child)
-                    elif r_mut < 0.66: self._mutate_scramble(child)
-                    else: self._mutate_shift_priority(child)
+                    if r_mut < 0.33:
+                        self._mutate_swap(child)
+                    elif r_mut < 0.66:
+                        self._mutate_scramble(child)
+                    else:
+                        self._mutate_shift_priority(child)
 
                 next_pop.append(child)
 
             population = next_pop
 
-        print(f"\n[GA] FINAL -> Asignadas: {global_best_assigned}, Max Slot: {global_best_msi}")
+        print(
+            f"\n[GA] FINAL -> Asignadas: {global_best_assigned}, Max Slot: {global_best_msi}"
+        )
 
         final_demands = [self.demands[i] for i in best_chrome]
         return run_sp_ff(
@@ -247,7 +261,8 @@ class GeneticOptimizer:
         child[a:b] = p1[a:b]
         current_p2 = 0
         for i in range(size):
-            if i >= a and i < b: continue
+            if i >= a and i < b:
+                continue
             while p2[current_p2] in child:
                 current_p2 += 1
             child[i] = p2[current_p2]

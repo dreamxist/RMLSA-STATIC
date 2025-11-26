@@ -54,8 +54,6 @@ class Network:
 
         for i in range(len(path) - 1):
             u, v = path[i], path[i + 1]
-            # Usamos slicing de numpy para verificar el bloque entero rápidamente
-            # Si la suma es > 0, significa que hay al menos un 'True' (ocupado)
             if self.spectrum[(u, v)][start_slot : start_slot + num_slots].any():
                 return False
         return True
@@ -65,7 +63,6 @@ class Network:
         Encuentra el primer índice de slot válido para el camino.
         Optimización: Busca huecos continuos.
         """
-        # Esta es una implementación básica. Para producción masiva se usan máscaras de bits.
         for i in range(self.num_slots - num_slots + 1):
             if self.is_path_free(path, i, num_slots):
                 return i
@@ -87,7 +84,6 @@ class Network:
         """Retorna el índice del slot más alto utilizado en toda la red (Max FSU Index)."""
         max_slot = -1
         for slots in self.spectrum.values():
-            # np.where devuelve los índices donde es True (ocupado)
             indices = np.where(slots)[0]
             if indices.size > 0:
                 current_max = indices.max()
