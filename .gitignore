@@ -10,9 +10,8 @@ ENV/
 .venv
 
 # Results
-results/*.csv
-results/*.png
-results/*.json
+resultado_comparativa.png
+assignments_details.txt
 
 # IDE
 .vscode/
@@ -24,3 +23,4 @@ results/*.json
 # OS
 .DS_Store
 Thumbs.db
+
