@@ -12,6 +12,7 @@ Este proyecto implementa y compara dos enfoques para resolver el problema RMLSA:
 ### Topologia NSFNet
 
 La simulacion utiliza la red NSFNet (National Science Foundation Network) con:
+
 - 14 nodos
 - 21 enlaces bidireccionales
 - 320 slots de frecuencia por enlace
@@ -19,11 +20,11 @@ La simulacion utiliza la red NSFNet (National Science Foundation Network) con:
 ### Formatos de Modulacion
 
 | Formato | Alcance Maximo | Bits/Simbolo | Slots por 100 Gbps |
-|---------|----------------|--------------|---------------------|
-| 16-QAM  | 500 km         | 4            | 2                   |
-| 8-QAM   | 1000 km        | 3            | 3                   |
-| QPSK    | 2000 km        | 2            | 4                   |
-| BPSK    | 10000 km       | 1            | 8                   |
+| ------- | -------------- | ------------ | ------------------ |
+| 16-QAM  | 500 km         | 4            | 2                  |
+| 8-QAM   | 1000 km        | 3            | 3                  |
+| QPSK    | 2000 km        | 2            | 4                  |
+| BPSK    | 10000 km       | 1            | 8                  |
 
 ## Requisitos
 
@@ -60,7 +61,7 @@ python3 -m venv venv
 # En macOS/Linux:
 source venv/bin/activate
 # En Windows:
-venv\Scripts\activate
+venv\Scripts\activate.bat
 
 # Instalar dependencias
 pip install -r requirements.txt
@@ -97,31 +98,32 @@ RMLSA-STATIC/
 
 ### Descripcion de Modulos
 
-| Modulo | Descripcion |
-|--------|-------------|
-| `simulator.py` | Orquesta la simulacion, mide tiempos y genera visualizaciones |
-| `algorithms.py` | Contiene `run_sp_ff()` y la clase `GeneticOptimizer` |
-| `core.py` | Define formatos de modulacion y la clase `Network` para gestion de espectro |
-| `topology.py` | Crea la topologia NSFNet e implementa K-shortest paths |
-| `traffic.py` | Clase `DemandGenerator` para crear demandas sinteticas |
+| Modulo          | Descripcion                                                                 |
+| --------------- | --------------------------------------------------------------------------- |
+| `simulator.py`  | Orquesta la simulacion, mide tiempos y genera visualizaciones               |
+| `algorithms.py` | Contiene `run_sp_ff()` y la clase `GeneticOptimizer`                        |
+| `core.py`       | Define formatos de modulacion y la clase `Network` para gestion de espectro |
+| `topology.py`   | Crea la topologia NSFNet e implementa K-shortest paths                      |
+| `traffic.py`    | Clase `DemandGenerator` para crear demandas sinteticas                      |
 
 ## Parametros Configurables
 
 Los siguientes parametros pueden modificarse en `simulator.py`:
 
-| Parametro | Valor por Defecto | Descripcion |
-|-----------|-------------------|-------------|
-| `NUM_SLOTS` | 320 | Numero de slots de frecuencia por enlace |
-| `AVG_BW` | 100.0 | Ancho de banda promedio por demanda (Gbps) |
-| `seed` | 42 | Semilla para reproducibilidad |
-| `pop_size` | 50 | Tamano de poblacion del algoritmo genetico |
-| `generations` | 100 | Numero de generaciones del algoritmo genetico |
+| Parametro     | Valor por Defecto | Descripcion                                   |
+| ------------- | ----------------- | --------------------------------------------- |
+| `NUM_SLOTS`   | 320               | Numero de slots de frecuencia por enlace      |
+| `AVG_BW`      | 100.0             | Ancho de banda promedio por demanda (Gbps)    |
+| `seed`        | 42                | Semilla para reproducibilidad                 |
+| `pop_size`    | 50                | Tamano de poblacion del algoritmo genetico    |
+| `generations` | 100               | Numero de generaciones del algoritmo genetico |
 
 ## Salidas del Simulador
 
 ### Consola
 
 Muestra un resumen comparativo de ambos algoritmos:
+
 - Tiempo de ejecucion
 - Demandas asignadas
 - Indice maximo de slot utilizado
@@ -129,10 +131,10 @@ Muestra un resumen comparativo de ambos algoritmos:
 
 ### Archivos Generados
 
-| Archivo | Descripcion |
-|---------|-------------|
-| `resultado_comparativa.png` | Grafico de barras comparando ambos algoritmos |
-| `assignments_details.txt` | Reporte detallado de cada asignacion de demanda |
+| Archivo                     | Descripcion                                     |
+| --------------------------- | ----------------------------------------------- |
+| `resultado_comparativa.png` | Grafico de barras comparando ambos algoritmos   |
+| `assignments_details.txt`   | Reporte detallado de cada asignacion de demanda |
 
 ## Dependencias
 
